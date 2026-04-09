@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
+// ─── STORAGE UTILITIES ───
+function loadMastery() { try { return JSON.parse(localStorage.getItem("rbt_mastery_v1")) || {}; } catch { return {}; } }
+function saveMastery(m) { try { localStorage.setItem("rbt_mastery_v1", JSON.stringify(m)); } catch {} }
+function loadSRS() { try { return JSON.parse(localStorage.getItem("rbt_srs_v1")) || {}; } catch { return {}; } }
+function saveSRS(s) { try { localStorage.setItem("rbt_srs_v1", JSON.stringify(s)); } catch {} }
+function fmtTime(s) { return `${Math.floor(s/60).toString().padStart(2,"0")}:${(s%60).toString().padStart(2,"0")}`; }
+
 const QUESTIONS = [
   // ============ A: MEASUREMENT ============
   { id:"A-01-001", domain:"A", taskItem:"A-01", difficulty:"basic", question:"What is the best definition of 'behavior' in ABA?", options:["A) An internal feeling or emotion","B) An observable and measurable action of an organism","C) A thought process that leads to action","D) Any movement a person makes involuntarily"], correct:"B", explanation:"In ABA, behavior must be observable and measurable. Internal states like feelings (A) and thoughts (C) don't qualify. Involuntary reflexes (D) are typically not the focus of RBT interventions." },
@@ -84,6 +91,42 @@ const QUESTIONS = [
   { id:"F-04-002", domain:"F", taskItem:"F-04", difficulty:"intermediate", question:"A client's parent offers to pay the RBT directly for extra sessions outside of the agency. The RBT should:", options:["A) Accept since it helps the client","B) Decline and explain this would be outside their professional scope and agency policy","C) Accept but don't tell the agency","D) Set up a separate contract"], correct:"B", explanation:"Accepting private payment creates a dual relationship and likely violates agency policy and ethical guidelines. All services should be coordinated through proper professional channels." },
   { id:"F-05-001", domain:"F", taskItem:"F-05", difficulty:"basic", question:"Cultural responsiveness in ABA means:", options:["A) Ignoring cultural differences to treat everyone the same","B) Considering the client's cultural background when implementing treatment","C) Only working with clients from your own culture","D) Imposing your own cultural values on the client"], correct:"B", explanation:"Cultural responsiveness means being aware of and respecting the client's cultural background, values, and practices. Treatment should be adapted to be culturally appropriate while maintaining effectiveness." },
   { id:"F-06-001", domain:"F", taskItem:"F-06", difficulty:"basic", question:"If an RBT suspects a client is being abused or neglected, they should:", options:["A) Ignore it unless they witness it directly","B) Report it to the appropriate authorities as a mandated reporter","C) Confront the suspected abuser","D) Wait and see if it happens again"], correct:"B", explanation:"RBTs are mandated reporters. If abuse or neglect is suspected, it MUST be reported to the appropriate authorities (e.g., child protective services). You do not need to witness it directly or wait." },
+
+  // ============ A: MEASUREMENT (additional) ============
+  { id:"A-02-005", domain:"A", taskItem:"A-02", difficulty:"basic", question:"Duration recording is most appropriate for measuring:", options:["A) How many times a behavior occurs","B) How long a behavior lasts from onset to offset","C) The time between the SD and the first response","D) The force or intensity of a behavior"], correct:"B", explanation:"Duration measures elapsed time from the start to the end of a behavior (e.g., how long a tantrum lasts). Rate/frequency (A) counts occurrences. Latency (C) is time from SD to response onset." },
+  { id:"A-07-001", domain:"A", taskItem:"A-07", difficulty:"intermediate", question:"Interobserver agreement (IOA) is calculated to:", options:["A) Determine the function of a behavior","B) Assess the reliability of data collection by comparing two independent observers' recordings","C) Measure how long a behavior lasts per session","D) Calculate the percentage of correct academic responses"], correct:"B", explanation:"IOA compares data from two independent observers to assess measurement reliability. High IOA (typically ≥80%) indicates observers are recording behavior consistently, supporting data validity." },
+  { id:"A-08-001", domain:"A", taskItem:"A-08", difficulty:"intermediate", question:"Social validity in ABA refers to:", options:["A) Whether the client has age-appropriate social skills","B) The social significance of treatment goals, acceptability of procedures, and importance of outcomes to stakeholders","C) How many people attend the therapy session","D) Whether the client's peers accept them socially"], correct:"B", explanation:"Social validity assesses whether (1) goals are meaningful, (2) procedures are acceptable to caregivers/clients, and (3) outcomes produce real-world differences. It ensures treatment is valued by those it affects." },
+
+  // ============ B: ASSESSMENT (additional) ============
+  { id:"B-01-005", domain:"B", taskItem:"B-01", difficulty:"intermediate", question:"After a preference assessment identifies a high-preference item, the RBT should:", options:["A) Assume it will always function as a reinforcer","B) Confirm its reinforcing value by observing whether it actually increases the target behavior when delivered contingently","C) Never use it during teaching to preserve its value","D) Only use it during preference assessments"], correct:"B", explanation:"Preference assessments identify potentially preferred stimuli, but only observing a behavior increase when the item is delivered contingently confirms it as a reinforcer. High preference does not guarantee reinforcing function." },
+  { id:"B-04-001", domain:"B", taskItem:"B-04", difficulty:"basic", question:"Curriculum-based assessments in ABA (e.g., VB-MAPP, ABLLS-R) are used to:", options:["A) Diagnose a client's disability","B) Identify a learner's current skill levels across domains to guide instruction and pinpoint teaching targets","C) Determine the function of problem behavior","D) Measure a client's IQ"], correct:"B", explanation:"Curriculum-based assessments evaluate existing skills across developmental domains (language, social, academic) to identify strengths and deficits, which then guide individualized treatment goals and teaching sequences." },
+  { id:"B-03-003", domain:"B", taskItem:"B-03", difficulty:"intermediate", question:"A scatter plot is used in FBA to:", options:["A) Plot cumulative behavior counts on a line graph","B) Identify patterns in when problem behavior is more or less likely by recording across time blocks","C) Compare the frequency of two different behaviors","D) Track skill acquisition mastery over time"], correct:"B", explanation:"Scatter plots divide sessions/days into time blocks and record behavior occurrence, allowing identification of temporal patterns (e.g., behavior spikes before lunch). This helps pinpoint antecedent conditions and setting events." },
+
+  // ============ C: SKILL ACQUISITION (additional) ============
+  { id:"C-07-006", domain:"C", taskItem:"C-07", difficulty:"intermediate", question:"When first teaching a brand-new behavior, which reinforcement schedule is most appropriate?", options:["A) Thin variable ratio (VR-10)","B) Fixed interval","C) Continuous reinforcement (CRF — every response reinforced)","D) Variable interval"], correct:"C", explanation:"CRF (reinforcing every correct response) builds the behavior quickly during initial acquisition. Once established, schedules are thinned to intermittent reinforcement to promote maintenance and resistance to extinction." },
+  { id:"C-07-007", domain:"C", taskItem:"C-07", difficulty:"basic", question:"An unconditioned (primary) reinforcer is:", options:["A) Something that must be paired with another stimulus to acquire reinforcing value","B) A stimulus that has reinforcing value without prior learning history (e.g., food, water, warmth)","C) A token used in a token economy","D) Praise or social approval from a caregiver"], correct:"B", explanation:"Unconditioned reinforcers have biological reinforcing value without any learning (food, water, sensory stimulation). Conditioned reinforcers (tokens, praise, money) acquire reinforcing value through pairing with unconditioned reinforcers." },
+  { id:"C-13-001", domain:"C", taskItem:"C-13", difficulty:"intermediate", question:"Functional communication training (FCT) involves:", options:["A) Teaching the client to speak in grammatically correct sentences","B) Teaching an appropriate communicative response that serves the same function as the problem behavior","C) Correcting speech articulation errors","D) Only using augmentative communication devices"], correct:"B", explanation:"FCT teaches a functionally equivalent replacement behavior (e.g., a verbal request, picture exchange, or gesture) that accesses the same reinforcer as the problem behavior, reducing its motivation and occurrence." },
+  { id:"C-14-001", domain:"C", taskItem:"C-14", difficulty:"intermediate", question:"Errorless learning involves:", options:["A) Allowing the learner to make errors so they learn from natural consequences","B) Providing immediate, intrusive prompts at the start of instruction to prevent incorrect responses","C) Only teaching skills already in the learner's repertoire","D) Using response cost to reduce errors"], correct:"B", explanation:"Errorless learning uses immediate full prompting (e.g., physical guidance or model) to ensure correct responding from the start. Prompts are faded systematically. This prevents strengthening error responses and reduces frustration." },
+  { id:"C-05-004", domain:"C", taskItem:"C-05", difficulty:"intermediate", question:"The primary goal of prompt fading is:", options:["A) To permanently eliminate all prompts immediately","B) To systematically reduce prompt intrusiveness so the learner responds independently to natural discriminative stimuli","C) To make the learner dependent on prompts for safety","D) To use only gestural prompts indefinitely"], correct:"B", explanation:"Prompt fading gradually transfers stimulus control from the artificial prompt to the natural SD, achieving independent responding. Failure to fade prompts creates prompt dependency, where the learner only responds when prompted." },
+
+  // ============ D: BEHAVIOR REDUCTION (additional) ============
+  { id:"D-01-004", domain:"D", taskItem:"D-01", difficulty:"advanced", question:"A setting event (motivating operation) in behavior analysis:", options:["A) Is identical to the immediate antecedent trigger","B) Alters the reinforcing value of stimuli and the probability of related behavior, often occurring well before the immediate antecedent","C) Only includes physical environmental conditions like temperature","D) Is a consequence that increases future behavior"], correct:"B", explanation:"Setting events/MOs (e.g., poor sleep, hunger, illness) change what is reinforcing and evoke related behaviors. Example: not sleeping makes escape reinforcement more valuable, increasing escape-motivated behavior during demanding tasks." },
+  { id:"D-02-004", domain:"D", taskItem:"D-02", difficulty:"intermediate", question:"Noncontingent reinforcement (NCR) as a behavior reduction strategy involves:", options:["A) Delivering reinforcement only when problem behavior occurs","B) Delivering the maintaining reinforcer on a fixed time schedule independent of behavior","C) Permanently withholding all reinforcement","D) Providing punishment after every instance of problem behavior"], correct:"B", explanation:"NCR delivers the reinforcer maintaining problem behavior on a time-based schedule regardless of what the client does. This reduces the motivation (abolishing operation) to engage in problem behavior to obtain the reinforcer." },
+  { id:"D-04-003", domain:"D", taskItem:"D-04", difficulty:"advanced", question:"Spontaneous recovery during extinction refers to:", options:["A) When a behavior permanently disappears after one extinction session","B) The temporary reappearance of a previously extinguished behavior after a period without exposure","C) When a client physically recovers from illness during therapy","D) A gradual steady increase in behavior over many weeks"], correct:"B", explanation:"After extinction reduces a behavior, spontaneous recovery is its brief reappearance at the start of a later session (e.g., the next day). Continuing extinction will eliminate it again. It signals the procedure is working, not failing." },
+  { id:"D-06-001", domain:"D", taskItem:"D-06", difficulty:"intermediate", question:"Response cost is a behavior reduction procedure that involves:", options:["A) Adding an aversive stimulus contingent on behavior","B) Removing a specified amount of a conditioned reinforcer (e.g., tokens) contingent on problem behavior","C) Removing the client from the reinforcing environment","D) Delivering reinforcement on an intermittent schedule"], correct:"B", explanation:"Response cost is negative punishment: a conditioned reinforcer (tokens, points, privileges) is removed contingent on problem behavior. In a token economy, tokens are lost when the target problem behavior occurs." },
+
+  // ============ E: DOCUMENTATION (additional) ============
+  { id:"E-01-002", domain:"E", taskItem:"E-01", difficulty:"basic", question:"Which of the following should NOT be included in RBT session notes?", options:["A) Data collected on target behaviors","B) Personal opinions about the client's family situation","C) Procedures implemented during the session","D) Objective observations about client responding"], correct:"B", explanation:"Session notes must be objective and clinically relevant. Personal opinions, judgments about family life, or subjective interpretations are inappropriate. Document observable facts: data collected, procedures run, and specific client responses." },
+  { id:"E-02-002", domain:"E", taskItem:"E-02", difficulty:"intermediate", question:"An RBT observes that a client's behavior has significantly changed over the past week. The RBT should:", options:["A) Document it in notes at the end of the month","B) Continue the current plan without mentioning it until the next scheduled supervision","C) Report the significant change to the supervising BCBA promptly","D) Ask the client to explain why their behavior has changed"], correct:"C", explanation:"Significant behavioral changes require prompt reporting to the BCBA so the treatment plan can be reviewed and adjusted as needed. Delayed reporting risks harm to the client and misses timely clinical decision-making opportunities." },
+  { id:"E-04-002", domain:"E", taskItem:"E-04", difficulty:"basic", question:"Session data and notes should ideally be completed:", options:["A) At the end of the month when you have more time","B) As close to the session as possible, ideally the same day","C) Only when the supervisor specifically requests them","D) After all sessions for the entire week are finished"], correct:"B", explanation:"Timely documentation ensures accuracy — memory fades rapidly and delayed entry risks errors or omissions. Most agencies require same-day documentation. Timely records support quality care and professional accountability." },
+  { id:"E-05-002", domain:"E", taskItem:"E-05", difficulty:"intermediate", question:"A teacher at the client's school calls the RBT requesting session data to help coordinate services. The RBT should:", options:["A) Email the session data immediately since it benefits the client","B) Direct the request to the BCBA and agency, as sharing records requires proper written authorization","C) Share verbal summaries freely but not written records","D) Refuse all future contact with school personnel"], correct:"B", explanation:"Sharing protected health information (PHI) requires proper written authorization per HIPAA, regardless of intent. The RBT refers such requests to the supervising BCBA and agency to ensure legally compliant information sharing." },
+
+  // ============ F: PROFESSIONAL CONDUCT (additional) ============
+  { id:"F-01-003", domain:"F", taskItem:"F-01", difficulty:"intermediate", question:"According to BACB standards, RBT supervision requirements include:", options:["A) At least 5% of monthly service hours, including direct observation of the RBT with clients","B) At least 5% of hours, all conducted remotely via video","C) A minimum of one supervision meeting per year","D) Supervision only required during the first 3 months of employment"], correct:"A", explanation:"The BACB requires a minimum of 5% of the RBT's service hours each month be supervised. Supervision must include direct (in-person or real-time video) observation of the RBT implementing services with clients, with performance feedback." },
+  { id:"F-02-003", domain:"F", taskItem:"F-02", difficulty:"advanced", question:"An RBT is directed to implement a procedure they have ethical concerns about. The RBT should:", options:["A) Implement it without question since the BCBA has all authority","B) Refuse immediately and leave the session","C) Voice concerns to the supervising BCBA through proper channels and document the conversation","D) Modify the procedure independently to what they believe is more ethical"], correct:"C", explanation:"When an RBT has ethical concerns, they must raise them with the supervisor through proper channels (not modify unilaterally or abandon the client). The BACB Ethics Code supports speaking up; documentation protects all parties." },
+  { id:"F-03-003", domain:"F", taskItem:"F-03", difficulty:"intermediate", question:"Client assent in ABA refers to:", options:["A) The legal written consent provided by parents or legal guardians","B) Observable indicators that the client is willing to participate, even if they cannot provide formal legal consent","C) The client signing a formal treatment contract","D) Insurance company authorization for services"], correct:"B", explanation:"Assent is distinct from legal consent. For clients who cannot legally consent (young children, individuals with significant cognitive disabilities), practitioners should still look for behavioral indicators of willingness and respect clear signs of refusal." },
+  { id:"F-04-003", domain:"F", taskItem:"F-04", difficulty:"basic", question:"An RBT posts a photo of a client's artwork (face not shown) on their personal social media with a positive caption. This:", options:["A) Is acceptable since the client's face is not visible","B) Potentially violates confidentiality since it could indirectly identify the client or disclose treatment details","C) Is encouraged to celebrate client progress publicly","D) Is permissible if the parent verbally approved it during a session"], correct:"B", explanation:"Even without a visible face, posting client artwork, descriptions, or context can indirectly identify a client or disclose their treatment. HIPAA requires written authorization — verbal permission is insufficient — and social media posts may persist indefinitely." },
+  { id:"F-05-002", domain:"F", taskItem:"F-05", difficulty:"intermediate", question:"When working with a client whose primary language differs from the RBT's, the RBT should:", options:["A) Only accept clients who speak the same language as the RBT","B) Collaborate with the BCBA to ensure linguistically appropriate services, using qualified interpreters as needed","C) Ask a family member to interpret during all sessions for convenience","D) Use only pictures and gestures regardless of the client's communication level"], correct:"B", explanation:"Language access is part of culturally responsive practice. Using family members as interpreters (C) raises confidentiality and accuracy concerns. The team should arrange qualified interpretation and adapt materials to be linguistically appropriate." },
 ];
 
 // ─── DOMAIN METADATA ───
@@ -120,6 +163,36 @@ export default function RBTExamPrep() {
   const [quizSize, setQuizSize] = useState(20);
   const [streakCount, setStreakCount] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
+  const [examMode, setExamMode] = useState(false);
+  const [examTime, setExamTime] = useState(0);
+  const [masteryMap, setMasteryMap] = useState(() => loadMastery());
+  const [srsData, setSrsData] = useState(() => loadSRS());
+
+  // Exam timer
+  useEffect(() => {
+    if (mode !== "quiz" || !examMode) return;
+    const id = setInterval(() => setExamTime(t => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [mode, examMode]);
+
+  // Update mastery when quiz/exam review screen is reached
+  useEffect(() => {
+    if (mode !== "review" || answers.length === 0) return;
+    setMasteryMap(prev => {
+      const updated = { ...prev };
+      answers.forEach(a => {
+        const p = updated[a.id] || { attempts: 0, correct: 0, consec: 0, mastered: false };
+        const consec = a.isCorrect ? p.consec + 1 : 0;
+        updated[a.id] = { attempts: p.attempts + 1, correct: p.correct + (a.isCorrect ? 1 : 0), consec, mastered: consec >= 3 || p.mastered };
+      });
+      saveMastery(updated);
+      return updated;
+    });
+  }, [mode]); // eslint-disable-line
+
+  const masteredCount = useMemo(() =>
+    QUESTIONS.filter(q => masteryMap[q.id]?.mastered).length,
+  [masteryMap]);
 
   const filtered = useMemo(() => {
     return QUESTIONS.filter(q => {
@@ -129,7 +202,7 @@ export default function RBTExamPrep() {
     });
   }, [filterDomain, filterDifficulty]);
 
-  const startQuiz = useCallback(() => {
+  const startQuiz = useCallback((asExam = false) => {
     const pool = shuffle(filtered).slice(0, quizSize);
     setQuizQuestions(pool);
     setCurrentIdx(0);
@@ -137,20 +210,32 @@ export default function RBTExamPrep() {
     setShowResult(false);
     setAnswers([]);
     setStreakCount(0);
+    setExamMode(asExam);
+    setExamTime(0);
     setMode("quiz");
   }, [filtered, quizSize]);
 
+  const startExam = useCallback(() => startQuiz(true), [startQuiz]);
+
   const startFlashcards = useCallback(() => {
-    setQuizQuestions(shuffle(filtered));
+    const now = Date.now();
+    const sorted = shuffle(filtered).sort((a, b) => {
+      const aDue = srsData[a.id]?.due ?? 0;
+      const bDue = srsData[b.id]?.due ?? 0;
+      const aOverdue = aDue > 0 && aDue <= now;
+      const bOverdue = bDue > 0 && bDue <= now;
+      if (aOverdue && !bOverdue) return -1;
+      if (!aOverdue && bOverdue) return 1;
+      return aDue - bDue;
+    });
+    setQuizQuestions(sorted);
     setCurrentIdx(0);
     setFlashcardFlipped(false);
     setMode("flashcard");
-  }, [filtered]);
+  }, [filtered, srsData]);
 
   const handleAnswer = useCallback((letter) => {
-    if (showResult) return;
-    setSelectedAnswer(letter);
-    setShowResult(true);
+    if (showResult || selectedAnswer) return;
     const q = quizQuestions[currentIdx];
     const isCorrect = letter === q.correct;
     setAnswers(prev => [...prev, { ...q, chosen: letter, isCorrect }]);
@@ -161,7 +246,18 @@ export default function RBTExamPrep() {
     } else {
       setStreakCount(0);
     }
-  }, [showResult, quizQuestions, currentIdx, streakCount, bestStreak]);
+    if (examMode) {
+      // Exam mode: no feedback, advance immediately
+      if (currentIdx + 1 >= quizQuestions.length) {
+        setMode("review");
+      } else {
+        setCurrentIdx(prev => prev + 1);
+      }
+    } else {
+      setSelectedAnswer(letter);
+      setShowResult(true);
+    }
+  }, [showResult, selectedAnswer, quizQuestions, currentIdx, streakCount, bestStreak, examMode]);
 
   const nextQuestion = useCallback(() => {
     if (currentIdx + 1 >= quizQuestions.length) {
@@ -182,6 +278,19 @@ export default function RBTExamPrep() {
     setFlashcardFlipped(false);
     setCurrentIdx(prev => (prev - 1 + quizQuestions.length) % quizQuestions.length);
   }, [quizQuestions]);
+
+  const handleFlashSRS = useCallback((pass) => {
+    const q = quizQuestions[currentIdx];
+    if (!q) return;
+    setSrsData(prev => {
+      const existing = prev[q.id] || { interval: 1 };
+      const interval = pass ? Math.min(existing.interval * 2, 30) : 1;
+      const updated = { ...prev, [q.id]: { interval, due: Date.now() + interval * 86400000 } };
+      saveSRS(updated);
+      return updated;
+    });
+    nextFlashcard();
+  }, [quizQuestions, currentIdx, nextFlashcard]);
 
   const score = answers.filter(a => a.isCorrect).length;
   const total = answers.length;
@@ -214,6 +323,17 @@ export default function RBTExamPrep() {
             <div style={styles.heroCard}>
               <h1 style={styles.heroTitle}>Master the RBT Exam</h1>
               <p style={styles.heroSub}>{QUESTIONS.length} questions across {Object.keys(DOMAINS).length} BACB domains</p>
+              {masteredCount > 0 && (
+                <div style={styles.masteryBarWrap}>
+                  <div style={styles.masteryBarRow}>
+                    <span style={styles.masteryBarLabel}>Mastered</span>
+                    <span style={styles.masteryBarLabel}>{masteredCount} / {QUESTIONS.length}</span>
+                  </div>
+                  <div style={styles.masteryBarTrack}>
+                    <div style={{...styles.masteryBarFill, width:`${(masteredCount/QUESTIONS.length)*100}%`}} />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Filters */}
@@ -255,11 +375,16 @@ export default function RBTExamPrep() {
 
             {/* Action buttons */}
             <div style={styles.actionRow}>
-              <button style={styles.primaryBtn} onClick={startQuiz} disabled={filtered.length === 0}>
+              <button style={styles.primaryBtn} onClick={() => startQuiz(false)} disabled={filtered.length === 0}>
                 Start Quiz
               </button>
               <button style={styles.secondaryBtn} onClick={startFlashcards} disabled={filtered.length === 0}>
                 Flashcards
+              </button>
+            </div>
+            <div style={styles.actionRow}>
+              <button style={styles.examBtn} onClick={startExam} disabled={filtered.length === 0}>
+                Exam Mode — no feedback, timed
               </button>
             </div>
 
@@ -294,7 +419,8 @@ export default function RBTExamPrep() {
                 {DOMAINS[currentQ.domain].icon} {currentQ.domain}: {DOMAINS[currentQ.domain].name}
               </span>
               <span style={styles.diffBadge}>{currentQ.difficulty}</span>
-              {streakCount > 1 && <span style={styles.streakBadge}>🔥 {streakCount}</span>}
+              {streakCount > 1 && !examMode && <span style={styles.streakBadge}>🔥 {streakCount}</span>}
+              {examMode && <span style={styles.timerBadge}>⏱ {fmtTime(examTime)}</span>}
             </div>
 
             {/* Score ticker */}
@@ -334,8 +460,8 @@ export default function RBTExamPrep() {
                 })}
               </div>
 
-              {/* Instant feedback */}
-              {showResult && (
+              {/* Instant feedback — normal quiz mode only */}
+              {showResult && !examMode && (
                 <div style={answers[answers.length - 1]?.isCorrect ? styles.feedbackCorrect : styles.feedbackWrong}>
                   <div style={styles.feedbackHeader}>
                     <span style={styles.feedbackIcon}>
@@ -363,6 +489,14 @@ export default function RBTExamPrep() {
               <span style={{...styles.domainBadge, background: DOMAINS[currentQ.domain].color}}>
                 {DOMAINS[currentQ.domain].icon} {currentQ.domain}
               </span>
+              {srsData[currentQ.id] && (
+                <span style={styles.srsBadge}>
+                  {srsData[currentQ.id].due <= Date.now()
+                    ? "Due for review"
+                    : `Review in ${Math.ceil((srsData[currentQ.id].due - Date.now()) / 86400000)}d`}
+                </span>
+              )}
+              {masteryMap[currentQ.id]?.mastered && <span style={styles.masteredBadge}>Mastered</span>}
             </div>
             <div
               style={styles.flashCard}
@@ -383,10 +517,18 @@ export default function RBTExamPrep() {
                 </div>
               )}
             </div>
-            <div style={styles.flashNav}>
-              <button style={styles.flashNavBtn} onClick={prevFlashcard}>← Prev</button>
-              <button style={styles.flashNavBtn} onClick={nextFlashcard}>Next →</button>
-            </div>
+            {flashcardFlipped && (
+              <div style={styles.srsRow}>
+                <button style={styles.srsLearnBtn} onClick={() => handleFlashSRS(false)}>✗ Still Learning</button>
+                <button style={styles.srsKnowBtn} onClick={() => handleFlashSRS(true)}>✓ Know It</button>
+              </div>
+            )}
+            {!flashcardFlipped && (
+              <div style={styles.flashNav}>
+                <button style={styles.flashNavBtn} onClick={prevFlashcard}>← Prev</button>
+                <button style={styles.flashNavBtn} onClick={nextFlashcard}>Next →</button>
+              </div>
+            )}
           </div>
         )}
 
@@ -394,12 +536,16 @@ export default function RBTExamPrep() {
         {mode === "review" && (
           <div style={styles.reviewWrap}>
             <div style={styles.reviewHeader}>
-              <h2 style={styles.reviewTitle}>Quiz Complete</h2>
+              <h2 style={styles.reviewTitle}>{examMode ? "Exam Complete" : "Quiz Complete"}</h2>
+              <div style={score / quizQuestions.length >= 0.8 ? styles.passBadge : styles.failBadge}>
+                {score / quizQuestions.length >= 0.8 ? "PASS" : "FAIL"}
+              </div>
               <div style={styles.reviewScoreCircle}>
                 <span style={styles.reviewScoreNum}>{Math.round((score / quizQuestions.length) * 100)}%</span>
                 <span style={styles.reviewScoreSub}>{score} / {quizQuestions.length}</span>
               </div>
-              {bestStreak > 1 && <p style={styles.streakFinal}>Best streak: 🔥 {bestStreak}</p>}
+              {examMode && examTime > 0 && <p style={styles.examTimeFinal}>Time: {fmtTime(examTime)}</p>}
+              {!examMode && bestStreak > 1 && <p style={styles.streakFinal}>Best streak: 🔥 {bestStreak}</p>}
               {score / quizQuestions.length >= 0.8 ? (
                 <p style={styles.reviewMsg}>Strong performance! Keep reinforcing weak areas.</p>
               ) : score / quizQuestions.length >= 0.6 ? (
@@ -448,7 +594,7 @@ export default function RBTExamPrep() {
             )}
 
             <div style={styles.reviewActions}>
-              <button style={styles.primaryBtn} onClick={startQuiz}>Retry Quiz</button>
+              <button style={styles.primaryBtn} onClick={() => startQuiz(examMode)}>{examMode ? "Retry Exam" : "Retry Quiz"}</button>
               <button style={styles.secondaryBtn} onClick={() => setMode("menu")}>Back to Menu</button>
             </div>
           </div>
@@ -806,4 +952,105 @@ const styles = {
   missedCorrectText: { color: "#2e7d32", fontWeight: 600 },
   missedExplanation: { fontSize: 13, color: "#555", lineHeight: 1.55, margin: 0, background: "#f9f9f6", padding: "10px 14px", borderRadius: 8 },
   reviewActions: { display: "flex", gap: 12 },
+
+  // MASTERY BAR (hero card)
+  masteryBarWrap: { marginTop: 16, textAlign: "left" },
+  masteryBarRow: { display: "flex", justifyContent: "space-between", marginBottom: 4 },
+  masteryBarLabel: { fontSize: 12, color: "rgba(245,240,235,0.7)", fontWeight: 600 },
+  masteryBarTrack: { background: "rgba(255,255,255,0.15)", borderRadius: 6, height: 8, overflow: "hidden" },
+  masteryBarFill: { height: "100%", background: "#81b29a", borderRadius: 6, transition: "width .5s" },
+
+  // EXAM BUTTON
+  examBtn: {
+    flex: 1,
+    padding: "14px 24px",
+    background: "#e07a5f",
+    color: "#fff",
+    border: "none",
+    borderRadius: 12,
+    fontSize: 15,
+    fontWeight: 600,
+    fontFamily: "'DM Sans', sans-serif",
+    cursor: "pointer",
+  },
+
+  // TIMER BADGE (quiz header)
+  timerBadge: {
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: 13,
+    fontWeight: 700,
+    padding: "3px 10px",
+    borderRadius: 12,
+    background: "#1a1a2e",
+    color: "#e07a5f",
+    border: "1px solid #e07a5f",
+  },
+
+  // PASS / FAIL BADGES (review)
+  passBadge: {
+    display: "inline-block",
+    background: "#2e7d32",
+    color: "#fff",
+    fontFamily: "'JetBrains Mono', monospace",
+    fontWeight: 700,
+    fontSize: 20,
+    padding: "6px 28px",
+    borderRadius: 10,
+    letterSpacing: 3,
+    marginBottom: 12,
+  },
+  failBadge: {
+    display: "inline-block",
+    background: "#c62828",
+    color: "#fff",
+    fontFamily: "'JetBrains Mono', monospace",
+    fontWeight: 700,
+    fontSize: 20,
+    padding: "6px 28px",
+    borderRadius: 10,
+    letterSpacing: 3,
+    marginBottom: 12,
+  },
+  examTimeFinal: { fontSize: 13, color: "#888", margin: "4px 0 0", fontFamily: "'JetBrains Mono', monospace" },
+
+  // SRS FLASHCARD BUTTONS
+  srsRow: { display: "flex", gap: 12, justifyContent: "center" },
+  srsKnowBtn: {
+    padding: "12px 28px",
+    background: "#2e7d32",
+    color: "#fff",
+    border: "none",
+    borderRadius: 10,
+    fontSize: 15,
+    fontWeight: 600,
+    fontFamily: "'DM Sans', sans-serif",
+    cursor: "pointer",
+  },
+  srsLearnBtn: {
+    padding: "12px 28px",
+    background: "#c62828",
+    color: "#fff",
+    border: "none",
+    borderRadius: 10,
+    fontSize: 15,
+    fontWeight: 600,
+    fontFamily: "'DM Sans', sans-serif",
+    cursor: "pointer",
+  },
+  srsBadge: {
+    fontSize: 11,
+    fontWeight: 600,
+    padding: "3px 10px",
+    borderRadius: 12,
+    background: "#fff3e0",
+    color: "#e65100",
+  },
+  masteredBadge: {
+    fontSize: 11,
+    fontWeight: 600,
+    padding: "3px 10px",
+    borderRadius: 12,
+    background: "#e8f5e9",
+    color: "#2e7d32",
+  },
 };
